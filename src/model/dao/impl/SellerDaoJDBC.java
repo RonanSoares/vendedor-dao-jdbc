@@ -97,8 +97,42 @@ public class SellerDaoJDBC implements SellerDao{
 
 	@Override
 	public List<Seller> findAll() {
-		// TODO Auto-generated method stub
-		return null;
+		java.sql.PreparedStatement ps = null;
+		ResultSet rs = null;
+		
+		try {
+			ps = conn.prepareStatement(
+					"SELECT seller. *, department.Name as DepName "
+					+ "FROM seller INNER JOIN department "
+					+ "ON seller.DepartmentId = department.Id "
+					+ "ORDER BY Name");
+			
+			rs = ps.executeQuery();
+			
+			List<Seller> list = new ArrayList<>();          // Cria a lista vazia para receber os vendedores
+			Map<Integer, Department> map = new HashMap<>(); // Cria o map, controle para não repetir o departamento
+			
+			while(rs.next()) {
+				
+				Department dep = map.get(rs.getInt("DepartmentId"));
+				
+				if(dep == null) {
+					dep = instantiateDepartment(rs);
+					map.put(rs.getInt("DepartmentId"), dep);					
+				}				
+				Seller obj = instantiateSeller(rs, dep);				
+				list.add(obj);  // Adiciona os vendedores na lista					
+			}
+			return list;
+		}
+		catch(SQLException e) {
+			throw new DbException(e.getMessage());
+		}
+		finally {
+			DB.closeStatement(ps);
+			DB.closeResultSet(rs);
+			// Conexão não fecha, pois pode ser usada em outras operações. (É fechada no programa principal)
+		}	
 	}
 
 	@Override
